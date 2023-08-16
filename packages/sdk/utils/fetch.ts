@@ -4,6 +4,7 @@ import { DfnsError } from '../dfnsError'
 import { BaseAuthApi, DfnsBaseApiOptions } from '../baseAuthApi'
 import { generateNonce } from './nonce'
 import { DfnsApiClientOptions } from '../dfnsApiClient'
+import { log } from 'console'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
@@ -47,7 +48,9 @@ const errorHandler = <T>(fetch: Fetch<T>): Fetch<T> => {
       return response
     } else {
       const body = await response.json()
-      throw new DfnsError(response.status, body.error.message, body.error)
+      console.log(body);
+      
+      throw new DfnsError(response.status, body.message, body.error)
     }
   }
 }

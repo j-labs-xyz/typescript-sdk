@@ -118,6 +118,27 @@ app.get(
     res.json(wallets)
   })
 )
+app.get(
+  '/wallets',
+  asyncHandler(async (req: Request, res: Response) => {
+    let parmas = {
+      walletId: String(req.query.walletId)
+    }
+    const wallet = await delegatedClient(req.cookies.DFNS_AUTH_TOKEN).wallets.getWallet(parmas)
+    res.json(wallet)
+  })
+)
+app.get(
+  '/wallets/assets',
+  asyncHandler(async (req: Request, res: Response) => {
+    let parmas = {
+      walletId: String(req.query.walletId)
+    }
+    const wallet = await delegatedClient(req.cookies.DFNS_AUTH_TOKEN).wallets.getWalletAssets(parmas)
+    res.json(wallet)
+  })
+)
+
 
 app.post(
   '/wallets/new/init',
