@@ -2,7 +2,6 @@ import { DfnsApiClient, DfnsDelegatedApiClient, DfnsAuthenticator } from '@dfns/
 import { AsymmetricKeySigner } from '@dfns/sdk-keysigner'
 import { BaseAuthApi } from '@dfns/sdk/baseAuthApi'
 import { UserAuthKind } from '@dfns/sdk/codegen/datamodel/Auth'
-import { WebAuthn } from '@dfns/sdk-webauthn'
 
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
@@ -24,14 +23,6 @@ const apiClient = () => {
     appId: process.env.DFNS_APP_ID!,
     authToken: process.env.DFNS_AUTH_TOKEN!,
     baseUrl: process.env.DFNS_API_URL!,
-    signer,
-  })
-}
-export const authApi = (): DfnsAuthenticator => {
-  const signer = new WebAuthn({ rpId: process.env.REACT_APP_DFNS_WEBAUTHN_RPID! })
-  return new DfnsAuthenticator({
-    appId: process.env.REACT_APP_DFNS_APP_ID!,
-    baseUrl: process.env.REACT_APP_DFNS_API_URL!,
     signer,
   })
 }
