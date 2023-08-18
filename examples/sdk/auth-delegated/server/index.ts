@@ -1,7 +1,9 @@
-import { DfnsApiClient, DfnsDelegatedApiClient } from '@dfns/sdk'
+import { DfnsApiClient, DfnsDelegatedApiClient, DfnsAuthenticator } from '@dfns/sdk'
 import { AsymmetricKeySigner } from '@dfns/sdk-keysigner'
 import { BaseAuthApi } from '@dfns/sdk/baseAuthApi'
 import { UserAuthKind } from '@dfns/sdk/codegen/datamodel/Auth'
+import { WebAuthn } from '@dfns/sdk-webauthn'
+
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import { randomUUID } from 'crypto'
@@ -25,7 +27,14 @@ const apiClient = () => {
     signer,
   })
 }
-
+export const authApi = (): DfnsAuthenticator => {
+  const signer = new WebAuthn({ rpId: process.env.REACT_APP_DFNS_WEBAUTHN_RPID! })
+  return new DfnsAuthenticator({
+    appId: process.env.REACT_APP_DFNS_APP_ID!,
+    baseUrl: process.env.REACT_APP_DFNS_API_URL!,
+    signer,
+  })
+}
 const delegatedClient = (authToken: string) => {
   return new DfnsDelegatedApiClient({
     appId: process.env.DFNS_APP_ID!,
@@ -52,6 +61,33 @@ app.use(express.json())
 app.get('/', (req: Request, res: Response) => {
   res.send('DFNS delegated auth example server')
 })
+
+app.post(
+  '/auth/login/init',
+  asyncHandler(async (req: Request, res: Response) => {
+    const response = await BaseAuthApi.createUserLoginChallenge({username: req.body.username, orgId: req.body.orgId}, {
+      appId: process.env.DFNS_APP_ID!,
+      baseUrl: process.env.DFNS_API_URL!,
+      authToken: req.body.authToken,
+    })
+    res.json(response)
+  })
+)
+
+app.post(
+  '/auth/login/complete',
+  asyncHandler(async (req: Request, res: Response) => {
+    const login = await BaseAuthApi.createUserLogin(req.body.signedChallenge, {
+      appId: process.env.DFNS_APP_ID!,
+      baseUrl: process.env.DFNS_API_URL!,
+      authToken: req.body.authToken,
+    })
+    let response = await apiClient().auth.createDelegatedUserLogin({
+      body: { username: req.body.username },
+    })
+    res.cookie('DFNS_AUTH_TOKEN', response.token, { maxAge: 90000000, httpOnly: true }).json({ username: req.body.username })
+  })
+)
 
 app.post(
   '/login',
