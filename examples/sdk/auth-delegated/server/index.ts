@@ -121,7 +121,7 @@ app.post(
     const permission = await client.permissions.createPermission({
       body: {
         name: `wallets permissions for ${registration.user.id}`,
-        operations: ['Wallets:Create', 'Wallets:Read'],
+        operations: ['Wallets:Create', 'Wallets:Read', 'Wallets:ReadTransfer', 'Wallets:TransferAsset'],
       },
     })
 
@@ -192,8 +192,12 @@ app.post(
   asyncHandler(async (req: Request, res: Response) => {
     // use the original request body and the signed challenge to complete the action
     const { requestBody, signedChallenge } = req.body
+    const body = {
+      network: requestBody.network,
+      externalId: requestBody.externalId,
+    }
     await delegatedClient(req.cookies.DFNS_AUTH_TOKEN).wallets.createWalletComplete(
-      { body: requestBody },
+      { body: body },
       signedChallenge
     )
 
@@ -202,6 +206,59 @@ app.post(
     res.status(204).end()
   })
 )
+
+app.post(
+  '/transfer/init',
+  asyncHandler(async (req: Request, res: Response) => {
+    // transform user inputs to a DFNS request body before initiating action signing flow
+    const body = {
+      kind: req.body.kind,
+      contract: req.body.contract,
+      to: req.body.to,
+      amount: req.body.amount,
+    }
+
+    const challenge = await delegatedClient(req.cookies.DFNS_AUTH_TOKEN).wallets.transferAssetInit({walletId: req.body.walletId, body: body})
+
+    // the exact request body is needed to complete the action, to maintain the state, it's
+    // round tripped to the client and back in the next request.
+    res.json({
+      requestBody: body,
+      challenge,
+    })
+  })
+)
+
+app.post(
+  '/transfer',
+  asyncHandler(async (req: Request, res: Response) => {
+    // use the original request body and the signed challenge to complete the action
+    const { requestBody, signedChallenge } = req.body
+    const body = {
+      kind: requestBody.kind,
+      contract: requestBody.contract,
+      to: requestBody.to,
+      amount: requestBody.amount,
+    }
+
+    await delegatedClient(req.cookies.DFNS_AUTH_TOKEN).wallets.transferAssetComplete(
+      {walletId: requestBody.walletId, body: body},
+      signedChallenge
+    )
+
+    // perform any local system updates with the DFNS response
+    res.status(204).end()
+  })
+)
+app.get(
+  '/transfer/list',
+  asyncHandler(async (req: Request, res: Response) => {
+    // transform user inputs to a DFNS request body before initiating action signing flow
+    let response = await delegatedClient(req.cookies.DFNS_AUTH_TOKEN).wallets.listTransfers({walletId: String(req.query.walletId)})
+    res.json(response)
+  })
+)
+
 
 const port = process.env.EXPRESS_PORT
 app.listen(port, () => {
