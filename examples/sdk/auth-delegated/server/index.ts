@@ -61,6 +61,7 @@ app.post(
       baseUrl: process.env.DFNS_API_URL!,
       authToken: req.body.authToken,
     })
+
     res.json(response)
   })
 )
@@ -88,7 +89,7 @@ app.post(
     const login = await apiClient().auth.createDelegatedUserLogin({
       body: { username: req.body.username },
     })
-
+  
     // cache the DFNS auth token, example uses a client-side cookie, but can be
     // cached in other ways, such as session storage or database
     res.cookie('DFNS_AUTH_TOKEN', login.token, { maxAge: 900000, httpOnly: true }).json({ username: req.body.username })
@@ -121,7 +122,14 @@ app.post(
     const permission = await client.permissions.createPermission({
       body: {
         name: `wallets permissions for ${registration.user.id}`,
-        operations: ['Wallets:Create', 'Wallets:Read', 'Wallets:ReadTransfer', 'Wallets:TransferAsset'],
+        operations: ['Wallets:Create',
+         'Wallets:Read', 
+         'Wallets:ReadTransfer',
+          'Wallets:TransferAsset',
+          'Wallets:BroadcastTransaction', 
+          'Wallets:ReadTransaction',
+          'Wallets:GenerateSignature',
+          'Wallets:ReadSignature'],
       },
     })
 
@@ -241,13 +249,13 @@ app.post(
       amount: requestBody.amount,
     }
 
-    await delegatedClient(req.cookies.DFNS_AUTH_TOKEN).wallets.transferAssetComplete(
+    const tx = await delegatedClient(req.cookies.DFNS_AUTH_TOKEN).wallets.transferAssetComplete(
       {walletId: requestBody.walletId, body: body},
       signedChallenge
     )
 
     // perform any local system updates with the DFNS response
-    res.status(204).end()
+    res.json(tx)
   })
 )
 app.get(
@@ -258,6 +266,7 @@ app.get(
     res.json(response)
   })
 )
+
 
 
 const port = process.env.EXPRESS_PORT
