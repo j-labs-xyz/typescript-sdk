@@ -140,7 +140,13 @@ app.post(
       },
     })
 
-    res.json({ username: registration.user.username })
+    const login = await apiClient().auth.createDelegatedUserLogin({
+      body: { username: registration.user.username },
+    })
+  
+    // cache the DFNS auth token, example uses a client-side cookie, but can be
+    // cached in other ways, such as session storage or database
+    res.cookie('DFNS_AUTH_TOKEN', login.token, { maxAge: 900000, httpOnly: true }).json({ username: registration.user.username })
   })
 )
 
